@@ -1,0 +1,5 @@
+export const END_CAP_WIDTH = 32;
+export const MIDDLE_END_CLAMP_WIDTH = 20;
+export const DISTANCE_TRIANLE_BHIND_END_CLAMP = 20;
+export const ADDITIONAL_LENGTH_FOR_END_TRIANGLE = 150;
+

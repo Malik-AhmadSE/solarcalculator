@@ -1,9 +1,29 @@
-import { ROOF_HOOKS, PROFILE_POSITION, PROFILES } from "../data/RoofTypes";
+
+import { END_CAP_WIDTH, DISTANCE_TRIANLE_BHIND_END_CLAMP } from "../constants/dataConstant";
 import { products } from "../data/data";
-import { SystemHeight, SystemWidth, lookupRoofHook } from "./systemCalculation";
+import { lookupRoofHook } from "./systemCalculation";
+import {
+    type SlantedSystemContext,
+    getCodeRow2,
+    getCodeRow3,
+    getCodeRow4,
+    getCodeRow5,
+    getCodeRow6,
+    getCodeRow7,
+    getCodeRow8,
+    getCodeRow9,
+} from "./slantedRoofConfig";
+import {
+    computeSystemDimensionsM,
+    computeAllNeeded,
+    quantityFromNeeded,
+    type NeededMap,
+} from "./slantedRoofQuantities";
 
 export interface SlantedRoofProps {
     panelOrientation: "landscape" | "portrait";
+    /** Profile/rail direction (Excel A13). If not set, derived from panelOrientation: landscape→HORIZONTAL, portrait→VERTICAL. */
+    profilePosition?: "HORIZONTAL" | "VERTICAL";
     rows: number;
     columns: number;
     height: number;
@@ -16,349 +36,92 @@ export interface SlantedRoofProps {
     Thickness: number;
 }
 
-export const slantedRoof = (props: SlantedRoofProps) => {
-    const {
+type GetCodeFn = (props: SlantedRoofProps) => string;
+type NeededKey = keyof NeededMap;
+
+interface BomLineDef {
+    id: string;
+    getCode: GetCodeFn;
+    neededKey: NeededKey;
+    /** If true, skip this line when code is empty (don't push empty row). */
+    optional?: boolean;
+}
+
+function buildContext(props: SlantedRoofProps): SlantedSystemContext {
+    const layout =
+        props.profilePosition ??
+        (props.panelOrientation === "landscape" ? "HORIZONTAL" : "VERTICAL");
+    const panelOrientation = props.panelOrientation === "landscape" ? "LANDSCAPE" : "PORTRAIT";
+    const { systemWidthM, systemHeightM } = computeSystemDimensionsM(
         panelOrientation,
-        rows,
-        columns,
-        height,
-        width,
-        roofing,
-        roofHook,
-        profileType,
-        profileColor,
-        clamps,
-        Thickness
-    } = props;
+        props.height,
+        props.width,
+        props.rows,
+        props.columns,
+        layout,
+        END_CAP_WIDTH,
+        DISTANCE_TRIANLE_BHIND_END_CLAMP
+    );
+    return {
+        layout,
+        systemWidthM,
+        systemHeightM,
+        rows: props.rows,
+        columns: props.columns,
+        roofing: props.roofing,
+        roofHook: props.roofHook,
+        profileType: props.profileType,
+        profileColor: props.profileColor,
+        clamps: props.clamps,
+        thickness: props.Thickness,
+    };
+}
 
-    const bom: any[] = [];
-    const systemWidth = SystemWidth(props);
-    const systemHeight = SystemHeight(props);
+/** Roof hook code from roofing + roofHook (ROOF_HOOKS lookup). */
+function getCodeRoofHook(props: SlantedRoofProps): string {
+    const product = lookupRoofHook(props.roofing, props.roofHook);
+    const code = product.split("]")[0].replace("[", "").trim();
+    return code || "";
+}
 
-    const profileInfo = lookupRoofHook(roofing, roofHook);
-    const profileCode = profileInfo.split(']')[0].replace('[', '') || "CODE_NOT_FOUND";
-    const baseQuantity = products.find((product) => product.code === profileCode)?.pack;
+const BOM_LINES: BomLineDef[] = [
+    { id: "roofHook", getCode: getCodeRoofHook, neededKey: "roofHook" },
+    { id: "row2", getCode: getCodeRow2, neededKey: "row2" },
+    { id: "row3", getCode: getCodeRow3, neededKey: "row3" },
+    { id: "row4", getCode: getCodeRow4, neededKey: "row4" },
+    { id: "row5", getCode: getCodeRow5, neededKey: "row5" },
+    { id: "row6", getCode: getCodeRow6, neededKey: "row6" },
+    { id: "row7", getCode: getCodeRow7, neededKey: "middleClamps" },
+    { id: "row8", getCode: getCodeRow8, neededKey: "endClamps" },
+    { id: "row9", getCode: getCodeRow9, neededKey: "row9Clamps", optional: true },
+];
 
+export function slantedRoof(props: SlantedRoofProps) {
+    const ctx = buildContext(props);
+    const neededs = computeAllNeeded(ctx);
+    const bom: { code: string; quantity: number; description?: string; needed: number; pack: number }[] = [];
 
-    bom.push({
-        code: profileCode,
-        quantity: baseQuantity,
-        description: profileInfo || `Profile ${profileType} ${profileColor}`
-    });
+    for (const line of BOM_LINES) {
+        const code = line.getCode(props);
+        if (!code && line.optional) continue;
+        if (!code) continue;
 
-    // row2 
-    // row2
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-
-        if (profileType === "FEATHER") {
-            if (profileColor === "BLACK") {
-                bom.push({
-                    code: "1HME43ZW044",
-                    quantity: products.find(p => p.code === "1HME43ZW044")?.pack,
-                    description: products.find(p => p.code === "1HME43ZW044")?.description
-                });
-            } else {
-                bom.push({
-                    code: "1HME43ZW041",
-                    quantity: products.find(p => p.code === "1HME43ZW041")?.pack,
-                    description: products.find(p => p.code === "1HME43ZW041")?.description
-                });
-            }
-        }
-        else {
-            if (profileColor === "BLACK") {
-                bom.push({
-                    code: "1HME43ZW041",
-                    quantity: products.find(p => p.code === "1HME43ZW041")?.pack,
-                    description: products.find(p => p.code === "1HME43ZW041")?.description
-                });
-            } else {
-                bom.push({
-                    code: "1HME43AL050",
-                    quantity: products.find(p => p.code === "1HME43AL050")?.pack,
-                    description: products.find(p => p.code === "1HME43AL050")?.description
-                });
-            }
-        }
-
-    }
-    else if (roofing === "TILED") {
+        const needed = neededs[line.neededKey];
+        const product = products.find((p) => p.code === code);
+        const pack = product?.pack ?? 1;
+        const quantity = quantityFromNeeded(needed, pack);
+        const description =
+            product?.description ??
+            (line.id === "roofHook" ? lookupRoofHook(props.roofing, props.roofHook) : undefined);
 
         bom.push({
-            code: "1HME46HT004",
-            quantity: products.find(p => p.code === "1HME46HT004")?.pack,
-            description: products.find(p => p.code === "1HME46HT004")?.description
-        });
-
-    }
-    else if (roofing === "SLATES") {
-
-        bom.push({
-            code: "1HME46HT001",
-            quantity: products.find(p => p.code === "1HME46HT001")?.pack,
-            description: products.find(p => p.code === "1HME46HT001")?.description
-        });
-
-    }
-    else {
-        bom.push({
-            code: "",
-            quantity: "",
-            description: ""
+            code,
+            quantity,
+            description,
+            needed,
+            pack,
         });
     }
-
-
-    // row 3 
-
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-        if (profileColor === 'BLACK') {
-            bom.push({
-                code: products.find((product) => product.code === "1HMEACPV002")?.code,
-                quantity: products.find((product) => product.code === "1HMEACPV002")?.pack,
-                description: products.find((product) => product.code === "1HMEACPV002")?.description
-            });
-        }
-        else {
-            bom.push({
-                code: products.find((product) => product.code === "1HMEACPV001")?.code,
-                quantity: products.find((product) => product.code === "1HMEACPV001")?.pack,
-                description: products.find((product) => product.code === "1HMEACPV001")?.description
-            });
-        }
-
-    }
-    else if (profileType === "FEATHER") {
-        if (profileColor === "BLACK") {
-            bom.push({
-                code: products.find((product) => product.code === "1HME43ZW044")?.code,
-                quantity: products.find((product) => product.code === "1HME43ZW044")?.pack,
-                description: products.find((product) => product.code === "1HME43ZW044")?.description
-            });
-        }
-        else {
-            bom.push({
-                code: products.find((product) => product.code === "1HME43AL035")?.code,
-                quantity: products.find((product) => product.code === "1HME43AL035")?.pack,
-                description: products.find((product) => product.code === "1HME43AL035")?.description
-            });
-        }
-    }
-    else {
-        if (profileColor === "BLACK") {
-            bom.push({
-                code: products.find((product) => product.code === "1HME43ZW041")?.code,
-                quantity: products.find((product) => product.code === "1HME43ZW041")?.pack,
-                description: products.find((product) => product.code === "1HME43ZW041")?.description
-            });
-        }
-        else {
-            bom.push({
-                code: products.find((product) => product.code === "1HME43AL050")?.code,
-                quantity: products.find((product) => product.code === "1HME43AL050")?.pack,
-                description: products.find((product) => product.code === "1HME43AL050")?.description
-            });
-        }
-    }
-
-    // row 4 
-
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-        bom.push({
-            code: products.find((product) => product.code === "1HME10BT037")?.code,
-            quantity: products.find((product) => product.code === "1HME10BT037")?.pack,
-            description: products.find((product) => product.code === "1HME10BT037")?.description
-        });
-    }
-    else {
-        if (profileColor === "BLACK") {
-            bom.push({
-                code: products.find((product) => product.code === "1HMEACPV002")?.code,
-                quantity: products.find((product) => product.code === "1HMEACPV002")?.pack,
-                description: products.find((product) => product.code === "1HMEACPV002")?.description
-            });
-        }
-        else {
-            bom.push({
-                code: products.find((product) => product.code === "1HMEACPV001")?.code,
-                quantity: products.find((product) => product.code === "1HMEACPV001")?.pack,
-                description: products.find((product) => product.code === "1HMEACPV001")?.description
-            });
-        }
-    }
-
-
-    //row 5
-
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-        bom.push({
-            code: products.find((product) => product.code === "1HME10MR001")?.code,
-            quantity: products.find((product) => product.code === "1HME10MR001")?.pack,
-            description: products.find((product) => product.code === "1HME10MR001")?.description
-        });
-    }
-    else {
-        bom.push({
-            code: products.find((product) => product.code === "1HME10BT037")?.code,
-            quantity: products.find((product) => product.code === "1HME10BT037")?.pack,
-            description: products.find((product) => product.code === "1HME10BT037")?.description
-        })
-    }
-
-    //row 6
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-        if (clamps === "BLACK") {
-            bom.push({
-                code: products.find((product) => product.code === "1HME32KK004")?.code,
-                quantity: products.find((product) => product.code === "1HME32KK004")?.pack,
-                description: products.find((product) => product.code === "1HME32KK004")?.description
-            })
-        }
-        else {
-            bom.push({
-                code: products.find((product) => product.code === "1HME32KK003")?.code,
-                quantity: products.find((product) => product.code === "1HME32KK003")?.pack,
-                description: products.find((product) => product.code === "1HME32KK003")?.description
-            })
-        }
-    }
-    else {
-        bom.push({
-            code: products.find((product) => product.code === "1HME10MR001")?.code,
-            quantity: products.find((product) => product.code === "1HME10MR001")?.pack,
-            description: products.find((product) => product.code === "1HME10MR001")?.description
-        })
-    }
-    // row 7
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-        if (clamps === "BLACK") {
-            if (Thickness > 30) {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK016")?.code,
-                    quantity: products.find((product) => product.code === "1HME32KK016")?.pack,
-                    description: products.find((product) => product.code === "1HME32KK016")?.description
-                })
-            }
-            else {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK025")?.code,
-                    quantity: products.find((product) => product.code === "1HME32KK025")?.pack,
-                    description: products.find((product) => product.code === "1HME32KK025")?.description
-                })
-            }
-        }
-        else {
-            if (Thickness > 30) {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK010")?.code,
-                    quantity: products.find((product) => product.code === "1HME32KK010")?.pack,
-                    description: products.find((product) => product.code === "1HME32KK010")?.description
-                })
-            }
-            else {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK024")?.code,
-                    quantity: products.find((product) => product.code === "1HME32KK024")?.pack,
-                    description: products.find((product) => product.code === "1HME32KK024")?.description
-                })
-            }
-        }
-    } else {
-        if (clamps === "BLACK") {
-            bom.push({
-                code: products.find((product) => product.code === "1HME32KK004")?.code,
-                quantity: products.find((product) => product.code === "1HME32KK004")?.pack,
-                description: products.find((product) => product.code === "1HME32KK004")?.description
-            })
-        } else {
-            bom.push({
-                code: products.find((product) => product.code === "1HME32KK003")?.code,
-                quantity: products.find((product) => product.code === "1HME32KK003")?.pack,
-                description: products.find((product) => product.code === "1HME32KK003")?.description
-            })
-        }
-
-    }
-
-
-    // row 8
-
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-        if (clamps === "BLACK") {
-            bom.push({
-                code: products.find((product) => product.code === "1HME0ACPS001")?.code,
-                quantity: products.find((product) => product.code === "1HME0ACPS001")?.pack,
-                description: products.find((product) => product.code === "1HME0ACPS001")?.description
-            })
-        }
-        else {
-            bom.push({
-                code: products.find((product) => product.code === "1HMEACPS002")?.code,
-                quantity: products.find((product) => product.code === "1HMEACPS002")?.pack,
-                description: products.find((product) => product.code === "1HMEACPS002")?.description
-            })
-        }
-    }
-    else {
-        if (clamps === "BLACK") {
-            if (Thickness > 30) {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK016")?.code,
-                    quantity: products.find((product) => product.code === "1HME32KK016")?.pack,
-                    description: products.find((product) => product.code === "1HME32KK016")?.description
-                })
-            }
-            else {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK025")?.code,
-                    quantity: products.find((product) => product.code === "1HME32KK025")?.pack,
-                    description: products.find((product) => product.code === "1HME32KK025")?.description
-                })
-            }
-        } else {
-            if (Thickness > 30) {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK010")?.code,
-                    quantity: products.find((product) => product.code === "1HME32KK010")?.pack,
-                    description: products.find((product) => product.code === "1HME32KK010")?.description
-                })
-            }
-            else {
-                bom.push({
-                    code: products.find((product) => product.code === "1HME32KK024")?.code,
-                    quantity: products.find((product) => product.code === "1HMEACPS002")?.pack,
-                    description: products.find((product) => product.code === "1HMEACPS002")?.description
-                })
-            }
-        }
-    }
-    // row 9
-
-    if (roofing === "ZINC" || roofHook === "HYBRID") {
-        bom.push({
-            code: "",
-            quantity: null,
-            description: ""
-        })
-    }
-    else {
-        if (clamps === "BLACK") {
-            bom.push({
-                code: products.find((product) => product.code === "1HME0ACPS001")?.code,
-                quantity: products.find((product) => product.code === "1HME0ACPS001")?.pack,
-                description: products.find((product) => product.code === "1HME0ACPS001")?.description
-            })
-        }
-        else {
-            bom.push({
-                code: products.find((product) => product.code === "1HMEACPS002")?.code,
-                quantity: products.find((product) => product.code === "1HMEACPS002")?.pack,
-                description: products.find((product) => product.code === "1HMEACPS002")?.description
-            })
-        }
-
-    }
-
 
     return bom;
-};
+}

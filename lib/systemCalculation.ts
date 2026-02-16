@@ -61,7 +61,7 @@ export function lookupRoofHook(roofing: string, hookType: string) {
         if (group[roofing as keyof typeof group]) {
             const hooks = group[roofing as keyof typeof group];
 
-            const found = hooks.find(
+            const found = hooks?.find(
                 (item: any) => item.type === hookType
             );
 

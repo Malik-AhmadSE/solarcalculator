@@ -454,7 +454,7 @@ export default function Home() {
                 {/* Header – logo in front of “ProMount BOM calculator”, regular black logo (Feedback PDF) */}
                 <header className="mb-8 flex flex-wrap items-center gap-3 border-b border-promount-border pb-6">
 
-                    <Image src="/vector.svg" alt="Logo" width={50} height={50} />
+                    <Image src="/Vector.svg" alt="Logo" width={50} height={50} />
 
                     <h1 className="text-2xl font-bold text-[#272727]">BOM calculator</h1>
                 </header>
@@ -1052,7 +1052,7 @@ export default function Home() {
 
                 {/* ProMount + Bill of materials – brand block (black logo per Feedback PDF) */}
                 <div className="mb-6 flex items-center gap-3 border-b border-promount-border pb-4">
-                    <Image src="/vector.svg" alt="Logo" width={50} height={50} />
+                    <Image src="/Vector.svg" alt="Logo" width={50} height={50} />
                     <h2 className="text-2xl font-bold text-[#272727]">ProMount</h2>
                 </div>
                 <h3 className="mb-4 text-lg font-semibold text-promount-foreground">Project total | Bill of materials</h3>

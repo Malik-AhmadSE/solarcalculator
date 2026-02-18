@@ -71,7 +71,7 @@
   --promount-background: #f8f7f8;
   --promount-foreground: #272727;
   --promount-border: #e2e8f0;
-  --promount-card: #ffffff;
+  --promount-card: #7E4AF6;
   --promount-ring: #7e4af6;
 }
 
@@ -148,6 +148,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

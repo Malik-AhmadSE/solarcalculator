@@ -1022,7 +1022,7 @@ export default function Home() {
                 {/* Summary cards – ProMount accent */}
                 <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="flex items-center gap-4 rounded-xl border border-promount-border bg-promount-card p-4 shadow-sm">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-promount-accent-muted text-promount-accent">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#7E4AF6] text-promount-accent">
                             <span className="text-xl">📦</span>
                         </div>
                         <div>
@@ -1031,8 +1031,8 @@ export default function Home() {
                         </div>
                     </div>
                     <div className="flex items-center gap-4 rounded-xl border border-promount-border bg-promount-card p-4 shadow-sm">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-promount-primary/10 text-promount-primary">
-                            <span className="text-xl">↔</span>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#7E4AF6] text-promount-primary">
+                            <span className="text-xl text-white">↔</span>
                         </div>
                         <div>
                             <p className="text-sm text-promount-muted-foreground">System Width</p>
@@ -1040,8 +1040,8 @@ export default function Home() {
                         </div>
                     </div>
                     <div className="flex items-center gap-4 rounded-xl border border-promount-border bg-promount-card p-4 shadow-sm">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-promount-accent-muted text-promount-accent">
-                            <span className="text-xl">↕</span>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#7E4AF6] text-promount-accent">
+                            <span className="text-xl text-white">↕</span>
                         </div>
                         <div>
                             <p className="text-sm text-promount-muted-foreground">System Height</p>
@@ -1051,9 +1051,9 @@ export default function Home() {
                 </div>
 
                 {/* ProMount + Bill of materials – brand block (black logo per Feedback PDF) */}
-                <div className="mb-6 flex items-center gap-3 border-b border-promount-border pb-4">
-                    <Image src="/Vector.svg" alt="Logo" width={50} height={50} />
-                    <h2 className="text-2xl font-bold text-[#272727]">ProMount</h2>
+                <div className="mb-6 flex  items-center gap-2 border-b border-promount-border pb-4">
+                    <Image src="/Vector.svg" className="brightness-0" alt="Logo" width={30} height={30} />
+                    <h2 className="text-4xl font-bold text-black">ProMount</h2>
                 </div>
                 <h3 className="mb-4 text-lg font-semibold text-promount-foreground">Project total | Bill of materials</h3>
 
@@ -1100,7 +1100,7 @@ export default function Home() {
                         onClick={handleExportPDF}
                         className="inline-flex items-center gap-2 rounded-lg bg-[#7E4AF6] px-4 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#7E4AF6] focus:ring-offset-2"
                     >
-                        <span aria-hidden>📄</span>
+
                         Export PDF
                     </button>
                 </div>

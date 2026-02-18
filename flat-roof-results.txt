@@ -1,0 +1,116 @@
+﻿=== Flat Roof BOM ΓÇô calculated results (same formulas as lib/flat.roof.ts)
+
+Compare these with your Excel sheet 'Flat Roof' (columns: Code, NEEDED=I, PACK=J, QUANTITY=K).
+
+Expected for 10├ù7 SOUTH (from docs/FLAT_ROOF_EXCEL_VERIFICATION.md):
+  1SSP19NZ020: needed=77, pack=1, quantity=77
+  1SSP99AC087: needed=70, pack=1, quantity=70
+  1HME46PL001: needed=1162, pack=100, quantity=1200
+  1HME32SR096: needed=28, pack=20, quantity=40
+  1HME32SR086: needed=126, pack=10, quantity=130
+  1HME10BT019: needed=154, pack=100, quantity=200
+
+--- 10├ù7 SOUTH, BLACK, 30mm, 1500 (Excel verification) ---
+Code              | Needed | Pack | Quantity
+-------------------|--------|------|---------
+1SSP19NZ020        |     77 |    1 |       77
+1SSP99AC084        |     70 |    1 |       70
+1SSP99AC030        |     70 |    1 |       70
+1SSP99AC038        |     11 |    1 |       11
+1SSP99AC034        |     22 |    1 |       22
+1HME46PL001        |   1162 |  100 |     1200
+1HME10BT019        |    154 |  100 |      200
+1HME32SR096        |     28 |   20 |       40
+1HME32SR086        |    126 |   10 |      130
+1SSP99AC087        |     70 |    1 |       70
+
+--- 5├ù7 SOUTH, BLACK, 30mm, 1500 ---
+Code              | Needed | Pack | Quantity
+-------------------|--------|------|---------
+1SSP19NZ020        |     42 |    1 |       42
+1SSP99AC084        |     35 |    1 |       35
+1SSP99AC030        |     35 |    1 |       35
+1SSP99AC038        |      6 |    1 |        6
+1SSP99AC034        |     12 |    1 |       12
+1HME46PL001        |    602 |  100 |      700
+1HME10BT019        |     84 |  100 |      100
+1HME32SR096        |     28 |   20 |       40
+1HME32SR086        |     56 |   10 |       60
+1SSP99AC087        |     35 |    1 |       35
+
+--- 5├ù7 SOUTH, BLACK, 30mm, 1600 ---
+Code              | Needed | Pack | Quantity
+-------------------|--------|------|---------
+1SSP19NZ023        |     42 |    1 |       42
+1SSP99AC084        |     35 |    1 |       35
+1SSP99AC030        |     35 |    1 |       35
+1SSP99AC038        |      6 |    1 |        6
+1SSP99AC034        |     12 |    1 |       12
+1HME46PL001        |    602 |  100 |      700
+1HME10BT019        |     84 |  100 |      100
+1HME32SR096        |     28 |   20 |       40
+1HME32SR086        |     56 |   10 |       60
+1SSP99AC087        |     35 |    1 |       35
+
+--- 5├ù7 SOUTH, ALU, 30mm, 1500 ---
+Code              | Needed | Pack | Quantity
+-------------------|--------|------|---------
+1SSP19NZ020        |     42 |    1 |       42
+1SSP99AC084        |     35 |    1 |       35
+1SSP99AC030        |     35 |    1 |       35
+1SSP99AC038        |      6 |    1 |        6
+1SSP99AC034        |     12 |    1 |       12
+1HME46PL001        |    602 |  100 |      700
+1HME10BT019        |     84 |  100 |      100
+1HME32SR097        |     28 |   20 |       40
+1HME32SR085        |     56 |   10 |       60
+1SSP99AC087        |     35 |    1 |       35
+
+--- 5├ù7 SOUTH, BLACK, 35mm, 1500 ---
+Code              | Needed | Pack | Quantity
+-------------------|--------|------|---------
+1SSP19NZ020        |     42 |    1 |       42
+1SSP99AC084        |     35 |    1 |       35
+1SSP99AC030        |     35 |    1 |       35
+1SSP99AC038        |      6 |    1 |        6
+1SSP99AC034        |     12 |    1 |       12
+1HME46PL001        |    602 |  100 |      700
+1HME10BT019        |     84 |  100 |      100
+1HME32SR072        |     28 |   20 |       40
+1HME32SR086        |     56 |   10 |       60
+1SSP99AC087        |     35 |    1 |       35
+
+--- 5├ù7 EAST_WEST, BLACK, 30mm, 2450 ---
+Code              | Needed | Pack | Quantity
+-------------------|--------|------|---------
+1SSP19EW017        |     16 |    1 |       16
+1SSP99AC084        |     35 |    1 |       35
+1SSP99AC030        |     35 |    1 |       35
+1SSP99AC038        |      8 |    1 |        8
+1SSP99AC034        |     16 |    1 |       16
+1HME46PL001        |    354 |  100 |      400
+1HME10BT019        |     80 |  100 |      100
+1HME32SR096        |     20 |   20 |       20
+1SSP99AC087        |     35 |    1 |       35
+1HME32SR086        |     60 |   10 |       60
+
+--- 5├ù7 EAST_WEST, ALU, 30mm, 2450 ---
+Code              | Needed | Pack | Quantity
+-------------------|--------|------|---------
+1SSP19EW017        |     16 |    1 |       16
+1SSP99AC084        |     35 |    1 |       35
+1SSP99AC030        |     35 |    1 |       35
+1SSP99AC038        |      8 |    1 |        8
+1SSP99AC034        |     16 |    1 |       16
+1HME46PL001        |    354 |  100 |      400
+1HME10BT019        |     80 |  100 |      100
+1HME32SR097        |     20 |   20 |       20
+1SSP99AC087        |     35 |    1 |       35
+1HME32SR085        |     60 |   10 |       60
+
+--- End of calculated results ---
+
+To get values from your Excel sheet, place 'BOM calculator v2.Axxiom.xlsx' in:
+  C:\Users\AhmadAli\Desktop\solar_final
+then run:  node read-flat-roof-sheet.js
+and compare the NEEDED/QUANTITY columns with the tables above.

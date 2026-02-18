@@ -2,6 +2,15 @@
 
 The **Flat Roof** sheet in `BOM calculator v2.Axxiom.xlsx` is a **SOLARSPEED-based** flat roof (tables, backplates, L-profiles, clamps, screws). It is **not** the pedestal/schans (FLD) system.
 
+## Rows and columns (must match Excel)
+
+For **NEEDED** calculations to match Excel, the app must use the same meaning as the sheet:
+
+- **Rows** = Excel **B2** (number of rows of panels)
+- **Columns** = Excel **B3** (number of columns of panels)
+
+Example: **10×7** means 10 rows, 7 columns → B2=10, B3=7. Then e.g. backplate = B3×B2 = 70, eindrubber = B2+1 = 11, middenklem = B3×(B2−1)×2 = 126. If your app’s “Rows” and “Columns” are swapped or stored differently, the NEEDED values will not match.
+
 ## Excel inputs (Flat Roof sheet)
 
 | Cell | Meaning | Example |

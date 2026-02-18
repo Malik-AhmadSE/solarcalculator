@@ -76,6 +76,32 @@ const FLAT_5x7_SOUTH: VerificationCase = {
 /** Common 5×7 dimensions for other roofs */
 const COMMON_5x7 = { rows: 5, columns: 7, width: 1134, height: 1722 };
 
+/** Flat 5×7 EAST_WEST – backplate/Lprofile/Koppel = rows×columns = 35 (one per panel). */
+const FLAT_5x7_EAST_WEST: VerificationCase = {
+    id: "flat-5x7-east-west",
+    roofType: "Flat Roof",
+    label: "Flat 5×7 EAST_WEST",
+    props: {
+        ...COMMON_5x7,
+        orientation: "EAST_WEST",
+        clamps: "BLACK",
+        thickness: 30,
+        triangleWidth: 2450,
+    },
+    expectedByCode: {
+        "1SSP19EW017": { needed: 16 },
+        "1SSP99AC087": { needed: 35 },
+        "1SSP99AC084": { needed: 35 },
+        "1SSP99AC030": { needed: 35 },
+        "1SSP99AC038": { needed: 8 },
+        "1SSP99AC034": { needed: 16 },
+        "1HME46PL001": { needed: 354 },
+        "1HME10BT019": { needed: 80 },
+        "1HME32SR096": { needed: 20 },
+        "1HME32SR086": { needed: 60 },
+    },
+};
+
 /** Slanted 5×7 portrait, VERTICAL profile. lengthM=systemHeightM, row4=(ceil(lengthM/6)-1)*2*perp, roofHook=sections*perp*2, row5/row6=row4*2+roofHook. */
 const SLANTED_5x7: VerificationCase = {
     id: "slanted-5x7",
@@ -175,12 +201,77 @@ const MOUNTING_ANCHOR_5x7: VerificationCase = {
     },
 };
 
+/** Field (no Triangle) 5×7: schroefpaal 1000/1500 (18+17), needM10 = needMiddenklem 116 + needVerbinder*8 (verbinder 2). */
+const FIELD_NO_TRI_5x7: VerificationCase = {
+    id: "field-no-tri-5x7",
+    roofType: "Field (no Triangle)",
+    label: "Field (no Triangle) 5×7, 1000/1500",
+    props: {
+        ...COMMON_5x7,
+        schroefpaalLength: "1000/1500",
+        profilesColor: "ALU",
+        clamps: "BLACK",
+    },
+    expectedByCode: {
+        "1FLD45GA005": { needed: 18 },
+        "1FLD45GA004": { needed: 17 },
+        "1HME10BT037": { needed: 132 }, // needMiddenklem 116 + needVerbinder 2 * 8
+        "1HME10MR001": { needed: 132 },
+    },
+};
+
+/** Steeldeck Solarspeed 5×7 SOUTH: table 42, backplate 35, M10 = eindklem+middenklem. */
+const STEELDECK_SOLARSPEED_5x7: VerificationCase = {
+    id: "steeldeck-solarspeed-5x7",
+    roofType: "Steeldeck Solarspeed",
+    label: "Steeldeck Solarspeed 5×7 SOUTH",
+    props: {
+        ...COMMON_5x7,
+        orientation: "SOUTH",
+        triangleWidth: 1500,
+        steelDeckType: "40cm",
+        clamps: "BLACK",
+        thickness: 30,
+    },
+    expectedByCode: {
+        "1SSP19NZ020": { needed: 42 },
+        "1SSP99AC087": { needed: 35 },
+        "1HME32SR096": { needed: 28 },
+        "1HME32SR086": { needed: 56 },
+    },
+};
+
+/** Steeldeck Solarspeed 5×7 EAST_WEST: table (cols+1)*floor(rows/2)=16, backplate 35. */
+const STEELDECK_SOLARSPEED_5x7_EW: VerificationCase = {
+    id: "steeldeck-solarspeed-5x7-ew",
+    roofType: "Steeldeck Solarspeed",
+    label: "Steeldeck Solarspeed 5×7 EAST_WEST",
+    props: {
+        ...COMMON_5x7,
+        orientation: "EAST_WEST",
+        triangleWidth: 1500,
+        steelDeckType: "40cm",
+        clamps: "BLACK",
+        thickness: 30,
+    },
+    expectedByCode: {
+        "1SSP19EW017": { needed: 16 },
+        "1SSP99AC087": { needed: 35 },
+        "1HME32SR096": { needed: 20 },
+        "1HME32SR086": { needed: 60 },
+    },
+};
+
 export const VERIFICATION_CASES: VerificationCase[] = [
     FLAT_10x7_SOUTH,
     FLAT_5x7_SOUTH,
+    FLAT_5x7_EAST_WEST,
     SLANTED_5x7,
     FIELD_5x7,
+    FIELD_NO_TRI_5x7,
     STEELDECK_5x7,
+    STEELDECK_SOLARSPEED_5x7,
+    STEELDECK_SOLARSPEED_5x7_EW,
     STEELDECK_TRI_5x7,
     MOUNTING_ANCHOR_5x7,
 ];

@@ -27,7 +27,7 @@ interface RoofConfigState {
     Thickness: number;
     orientation: "SOUTH" | "EAST_WEST" | "LANDSCAPE" | "PORTRAIT";
     thickness: number;
-    triangleWidth: 1500 | 1600;
+    triangleWidth: 1500 | 1600 | 2450;
     profilesColor: "ALU" | "BLACK";
     profilesType: "FEATHER" | "HOUSE";
     steelDeckType: "15cm" | "40cm" | "Connecting";
@@ -366,8 +366,9 @@ const TestBOMPage = () => {
                                             onChange={(e) => update("triangleWidth", parseInt(e.target.value, 10) as 1500 | 1600)}
                                             className={inputClass}
                                         >
-                                            <option value={1500}>1500</option>
-                                            <option value={1600}>1600</option>
+                                            {config.orientation === "SOUTH" && <option value={1500}>1500</option>}
+                                            {config.orientation === "SOUTH" && <option value={1600}>1600</option>}
+                                            {config.orientation === "EAST_WEST" && <option value={2450}>2450</option>}
                                         </select>
                                     </ConfigField>
                                 </>

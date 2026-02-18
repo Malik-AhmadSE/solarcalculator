@@ -2,8 +2,15 @@
 
 import React, { useMemo } from "react";
 import { ROOF_TYPES, type RoofType } from "@/lib/roofTypes";
-import { calculateBOM, type BomItem } from "@/lib/calculateBOM";
+import { calculateBOM, type BomItem, type CommonRoofProps } from "@/lib/calculateBOM";
 import type { SlantedRoofProps } from "@/lib/slanted.roof";
+import type { FlatRoofProps } from "@/lib/flat.roof";
+import type { FieldRoofProps } from "@/lib/field.roof";
+import type { FieldNoTriangleRoofProps } from "@/lib/fieldNoTriangle.roof";
+import type { SteeldeckRoofProps } from "@/lib/steeldeck.roof";
+import type { SteeldeckSolarspeedRoofProps } from "@/lib/steeldeckSolarspeed.roof";
+import type { SteeldeckTriangleRoofProps } from "@/lib/steeldeckTriangle.roof";
+import type { MountingAnchorRoofProps } from "@/lib/mountingAnchor.roof";
 import { systemDimensionsM, railPieces6m } from "@/lib/roofUtils";
 import { VERIFICATION_CASES } from "@/lib/verificationMatrix";
 
@@ -66,6 +73,52 @@ const SLANTED_CONFIGURATIONS: { label: string; props: SlantedRoofProps }[] = [
         label: "Portrait, VERTICAL, TILED, HYBRID, FEATHER, BLACK, 30mm",
         props: { ...COMMON, panelOrientation: "portrait", profilePosition: "VERTICAL", roofing: "TILED", roofHook: "HYBRID", profileType: "FEATHER", profileColor: "BLACK", clamps: "BLACK", Thickness: 30 },
     },
+];
+
+/** Flat Roof: all configuration combinations (orientation, clamps, thickness, triangleWidth). */
+const FLAT_CONFIGURATIONS: { label: string; props: FlatRoofProps }[] = [
+    { label: "SOUTH, BLACK, 30 mm, 1500", props: { ...COMMON, orientation: "SOUTH", clamps: "BLACK", thickness: 30, triangleWidth: 1500 } },
+    { label: "SOUTH, BLACK, 30 mm, 1600", props: { ...COMMON, orientation: "SOUTH", clamps: "BLACK", thickness: 30, triangleWidth: 1600 } },
+    { label: "SOUTH, ALU, 30 mm, 1500", props: { ...COMMON, orientation: "SOUTH", clamps: "ALU", thickness: 30, triangleWidth: 1500 } },
+    { label: "SOUTH, BLACK, 35 mm, 1500", props: { ...COMMON, orientation: "SOUTH", clamps: "BLACK", thickness: 35, triangleWidth: 1500 } },
+    { label: "EAST_WEST, BLACK, 30 mm, 2450", props: { ...COMMON, orientation: "EAST_WEST", clamps: "BLACK", thickness: 30, triangleWidth: 2450 } },
+    { label: "EAST_WEST, ALU, 30 mm, 2450", props: { ...COMMON, orientation: "EAST_WEST", clamps: "ALU", thickness: 30, triangleWidth: 2450 } },
+];
+
+/** Field: LANDSCAPE/PORTRAIT, profiles color, clamps. */
+const FIELD_CONFIGURATIONS: { label: string; props: FieldRoofProps }[] = [
+    { label: "LANDSCAPE, ALU, BLACK", props: { ...COMMON, orientation: "LANDSCAPE", profilesColor: "ALU", clamps: "BLACK" } },
+    { label: "PORTRAIT, BLACK, ALU", props: { ...COMMON, orientation: "PORTRAIT", profilesColor: "BLACK", clamps: "ALU" } },
+];
+
+/** Field (no Triangle): schroefpaal length, profiles color, clamps. */
+const FIELD_NO_TRI_CONFIGURATIONS: { label: string; props: FieldNoTriangleRoofProps }[] = [
+    { label: "1000/1500, ALU, BLACK", props: { ...COMMON, schroefpaalLength: "1000/1500", profilesColor: "ALU", clamps: "BLACK" } },
+    { label: "1500, BLACK, ALU", props: { ...COMMON, schroefpaalLength: 1500, profilesColor: "BLACK", clamps: "ALU" } },
+];
+
+/** Steeldeck: profile position, steel deck type, profiles type/color, clamps, thickness. */
+const STEELDECK_CONFIGURATIONS: { label: string; props: SteeldeckRoofProps }[] = [
+    { label: "VERTICAL, 15cm, FEATHER, ALU, BLACK, 30mm", props: { ...COMMON, profilePosition: "VERTICAL", steelDeckType: "15cm", profilesType: "FEATHER", profilesColor: "ALU", clamps: "BLACK", thickness: 30 } },
+    { label: "HORIZONTAL, 40cm, HOUSE, BLACK, ALU, 35mm", props: { ...COMMON, profilePosition: "HORIZONTAL", steelDeckType: "40cm", profilesType: "HOUSE", profilesColor: "BLACK", clamps: "ALU", thickness: 35 } },
+];
+
+/** Steeldeck Solarspeed: orientation, triangle width, steel deck type, clamps, thickness. */
+const STEELDECK_SOLARSPEED_CONFIGURATIONS: { label: string; props: SteeldeckSolarspeedRoofProps }[] = [
+    { label: "SOUTH, 1500, 40cm, BLACK, 30mm", props: { ...COMMON, orientation: "SOUTH", triangleWidth: 1500, steelDeckType: "40cm", clamps: "BLACK", thickness: 30 } },
+    { label: "EAST_WEST, 1600, 15cm, ALU, 35mm", props: { ...COMMON, orientation: "EAST_WEST", triangleWidth: 1600, steelDeckType: "15cm", clamps: "ALU", thickness: 35 } },
+];
+
+/** Steeldeck Triangle: profile position, profiles color, clamps, thickness. */
+const STEELDECK_TRIANGLE_CONFIGURATIONS: { label: string; props: SteeldeckTriangleRoofProps }[] = [
+    { label: "VERTICAL, ALU, BLACK, 30mm", props: { ...COMMON, profilePosition: "VERTICAL", profilesColor: "ALU", clamps: "BLACK", thickness: 30 } },
+    { label: "HORIZONTAL, BLACK, ALU, 35mm", props: { ...COMMON, profilePosition: "HORIZONTAL", profilesColor: "BLACK", clamps: "ALU", thickness: 35 } },
+];
+
+/** Mounting Anchor: profile position, roof structure, material, profiles type/color, clamps. */
+const MOUNTING_ANCHOR_CONFIGURATIONS: { label: string; props: MountingAnchorRoofProps }[] = [
+    { label: "VERTICAL, EPDM/TPO/PVC, CONCRETE, FEATHER, BLACK, BLACK", props: { ...COMMON, profilePosition: "VERTICAL", roofStructure: "EPDM/TPO/PVC", material: "CONCRETE", profilesType: "FEATHER", profilesColor: "BLACK", clamps: "BLACK" } },
+    { label: "HORIZONTAL, bitumen, WOOD/STEEL, HOUSE, ALU, ALU", props: { ...COMMON, profilePosition: "HORIZONTAL", roofStructure: "bitumen", material: "WOOD/STEEL", profilesType: "HOUSE", profilesColor: "ALU", clamps: "ALU" } },
 ];
 
 /** Formula summary per roof for quick verification. */
@@ -133,6 +186,86 @@ function SlantedAllConfigurations() {
                 <p className="text-slate-400 text-sm mt-1">
                     BOM result (code, needed, pack, quantity) for each configuration. Same base: 5×7, 1134×1722 mm.
                 </p>
+            </div>
+            <div className="divide-y divide-slate-800">
+                {results.map((r, idx) => (
+                    <details key={idx} className="group">
+                        <summary className="p-4 cursor-pointer list-none flex items-center justify-between hover:bg-slate-800/30 text-slate-200 font-medium">
+                            <span>{r.label}</span>
+                            <span className="text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <div className="px-4 pb-4">
+                            <div className="rounded-lg overflow-hidden border border-slate-700">
+                                <BomTable items={r.bom} />
+                            </div>
+                        </div>
+                    </details>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function FlatAllConfigurations() {
+    const results = useMemo(() => {
+        return FLAT_CONFIGURATIONS.map(({ label, props }) => ({
+            label,
+            props,
+            bom: calculateBOM("Flat Roof", props),
+        }));
+    }, []);
+
+    return (
+        <section className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-800">
+                <h2 className="text-xl font-semibold text-white">Flat roof – all configurations</h2>
+                <p className="text-slate-400 text-sm mt-1">
+                    BOM result for each Flat Roof combination: SOUTH/EAST_WEST, clamps, thickness, triangle width.
+                </p>
+            </div>
+            <div className="divide-y divide-slate-800">
+                {results.map((r, idx) => (
+                    <details key={idx} className="group">
+                        <summary className="p-4 cursor-pointer list-none flex items-center justify-between hover:bg-slate-800/30 text-slate-200 font-medium">
+                            <span>{r.label}</span>
+                            <span className="text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <div className="px-4 pb-4">
+                            <div className="rounded-lg overflow-hidden border border-slate-700">
+                                <BomTable items={r.bom} />
+                            </div>
+                        </div>
+                    </details>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+/** Generic "all configurations" block for any roof type. */
+function RoofAllConfigurations({
+    roofType,
+    title,
+    description,
+    configs,
+}: {
+    roofType: RoofType;
+    title: string;
+    description: string;
+    configs: { label: string; props: CommonRoofProps }[];
+}) {
+    const results = useMemo(() => {
+        return configs.map(({ label, props }) => ({
+            label,
+            bom: calculateBOM(roofType, props),
+        }));
+    }, [roofType, configs]);
+
+    return (
+        <section className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-800">
+                <h2 className="text-xl font-semibold text-white">{title}</h2>
+                <p className="text-slate-400 text-sm mt-1">{description}</p>
             </div>
             <div className="divide-y divide-slate-800">
                 {results.map((r, idx) => (
@@ -279,6 +412,50 @@ export default function VerifyRoofsPage() {
                 </section>
 
                 <SlantedAllConfigurations />
+
+                <FlatAllConfigurations />
+
+                <RoofAllConfigurations
+                    roofType="Field"
+                    title="Field – all configurations"
+                    description="LANDSCAPE/PORTRAIT, profiles color, clamps. Base: 5×7, 1134×1722 mm."
+                    configs={FIELD_CONFIGURATIONS}
+                />
+
+                <RoofAllConfigurations
+                    roofType="Field (no Triangle)"
+                    title="Field (no Triangle) – all configurations"
+                    description="Schroefpaal length, profiles color, clamps."
+                    configs={FIELD_NO_TRI_CONFIGURATIONS}
+                />
+
+                <RoofAllConfigurations
+                    roofType="Steeldeck"
+                    title="Steeldeck – all configurations"
+                    description="Profile position, steel deck type, profiles type/color, clamps, thickness."
+                    configs={STEELDECK_CONFIGURATIONS}
+                />
+
+                <RoofAllConfigurations
+                    roofType="Steeldeck Solarspeed"
+                    title="Steeldeck Solarspeed – all configurations"
+                    description="Orientation SOUTH/EAST_WEST, triangle width, steel deck type, clamps, thickness."
+                    configs={STEELDECK_SOLARSPEED_CONFIGURATIONS}
+                />
+
+                <RoofAllConfigurations
+                    roofType="Steeldeck Triangle"
+                    title="Steeldeck Triangle – all configurations"
+                    description="Profile position, profiles color, clamps, thickness."
+                    configs={STEELDECK_TRIANGLE_CONFIGURATIONS}
+                />
+
+                <RoofAllConfigurations
+                    roofType="Mounting Anchor"
+                    title="Mounting Anchor – all configurations"
+                    description="Profile position, roof structure, material, profiles type/color, clamps."
+                    configs={MOUNTING_ANCHOR_CONFIGURATIONS}
+                />
 
                 <VerificationMatrixTable />
 

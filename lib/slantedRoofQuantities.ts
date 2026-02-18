@@ -94,11 +94,11 @@ export function computeAllNeeded(ctx: SlantedSystemContext): NeededMap {
 
     // K19: ZINC/HYBRID → (ROUNDUP(length/6,0)-1)*2*perp; else same as K18
     const row3 = zincHybrid
-        ? (Math.ceil(lengthM / L) - 1) * R * perp
+        ? Math.max(0, (Math.ceil(lengthM / L) - 1) * R * perp)
         : Math.ceil((lengthTimesPerp * R * W) / L);
 
     // K20: ZINC/HYBRID → K19*2 + (ZINC ? optional K17 : 0); else (ROUNDUP(length/6,0)-1)*2*perp
-    const row4NonZinc = (Math.ceil(lengthM / L) - 1) * R * perp;
+    const row4NonZinc = Math.max(0, (Math.ceil(lengthM / L) - 1) * R * perp);
     const row4 = zincHybrid
         ? row3 * 2 + (ctx.roofing === "ZINC" ? roofHook : 0)
         : row4NonZinc;

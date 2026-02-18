@@ -112,14 +112,8 @@ Formulas identical to Field. No extra triangle/bracket line items in current imp
 
 **File:** `lib/steeldeckSolarspeed.roof.ts`
 
-| Product code   | Needed formula |
-|----------------|----------------|
-| 1SSP99AC086    | `rows` (backplate per row) |
-| 1HME32SR086    | `(columns − 1) * rows * 2` |
-| 1HME32SR072    | `rows * 2 * 2` |
-| 1HME46PL001    | `panelCount * 4` |
-| 1SSP99AC034    | `panelCount * 2` |
-| 1SSP99AC038    | `rows * 2` (eindrubber) |
+SOUTH: table `cols×rows+cols`, backplate `cols×rows`; eindklem `cols×4`, middenklem `cols×(rows−1)×2`.  
+EAST_WEST: table `(cols+1)×floor(rows/2)`; backplate `rows×cols`; eindklem `rows×4`, middenklem `rows×(cols−1)×2`.
 
 ---
 

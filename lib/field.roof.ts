@@ -28,7 +28,8 @@ export function fieldRoof(props: FieldRoofProps): FieldRoofBomItem[] {
     const rows = props.rows;
     const columns = props.columns;
     const { widthM, heightM } = systemDimensionsM(rows, columns, props.width, props.height);
-    const orientation = props.orientation ?? "LANDSCAPE";
+    const rawOrientation = props.orientation ?? "LANDSCAPE";
+    const orientation = rawOrientation === "LANDSCAPE" || rawOrientation === "PORTRAIT" ? rawOrientation : "LANDSCAPE";
     const profilesColor = props.profilesColor ?? "ALU";
     const clamps = props.clamps ?? "ALU";
 

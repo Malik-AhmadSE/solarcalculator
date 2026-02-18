@@ -456,7 +456,7 @@ export default function Home() {
 
                     <Image src="/Vector.svg" alt="Logo" width={50} height={50} />
 
-                    <h1 className="text-2xl font-bold text-[#272727]">BOM calculator</h1>
+                    <h1 className="text-2xl font-bold text-[#272727]">ProMount BOM calculator</h1>
                 </header>
 
                 {/* Roof type boxes – selected = whole button purple #7E4AF6 (Feedback PDF) */}

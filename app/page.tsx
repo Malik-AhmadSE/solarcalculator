@@ -378,71 +378,140 @@ export default function Home() {
         URL.revokeObjectURL(link.href);
     };
 
+    // SVG logo converted to data URI for jsPDF embedding
+    const PROMOUNT_LOGO_SVG = `data:image/svg+xml;base64,${btoa(`<svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M19.3359 19.6448C19.6205 19.6449 19.8511 19.4142 19.8511 19.1297L19.8511 4.64084C19.8511 4.18243 19.2973 3.95237 18.9725 4.27584L4.42584 18.7622C4.10032 19.0864 4.32985 19.6423 4.78924 19.6424L19.3359 19.6448Z" fill="#000000"/>
+<path d="M19.5879 0.188594C19.3365 -0.0628645 18.9289 -0.0628645 18.6774 0.188594L0.188593 18.6774C-0.0628644 18.9289 -0.0628645 19.3365 0.188593 19.5879C0.440052 19.8394 0.847651 19.8394 1.09911 19.5879L19.5879 1.09911C19.8394 0.847649 19.8394 0.440052 19.5879 0.188594Z" fill="#000000"/>
+</svg>`)}`;
+
+    async function getLogoImageData(): Promise<string> {
+        return new Promise((resolve) => {
+            if (typeof window === 'undefined') {
+                resolve("");
+                return;
+            }
+            
+            const img = document.createElement('img');
+            const canvas = document.createElement("canvas");
+            const size = 60;
+            canvas.width = size;
+            canvas.height = size;
+            img.onload = () => {
+                const ctx = canvas.getContext("2d")!;
+                ctx.drawImage(img, 0, 0, size, size);
+                resolve(canvas.toDataURL("image/png"));
+            };
+            img.onerror = () => {
+                resolve("");
+            };
+            img.src = PROMOUNT_LOGO_SVG;
+        });
+    }
+
     const handleExportPDF = async () => {
         const { jsPDF } = await import("jspdf");
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-        const pageW = doc.internal.pageSize.getWidth();
-        const margin = 14;
-        const colN = margin;
-        const colCode = margin + 12;
-        const colDesc = margin + 38;
-        const colNeeded = 125;
-        const colPack = 140;
-        const colQty = 158;
-        const rowH = 7;
-        let y = 20;
 
-        doc.setFontSize(18);
-        doc.text("ProMount", margin, y);
-        y += 8;
-        doc.setFontSize(14);
-        doc.text("Project total | Bill of materials", margin, y);
-        y += 8;
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`${roofType} · ${config.rows}×${config.columns} panels`, margin, y);
-        doc.text(new Date().toLocaleDateString(), pageW - margin - 25, y);
-        doc.setTextColor(0, 0, 0);
+        const pageW = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const contentW = pageW - margin * 2;
+        const rowH = 8;
+        let y = 25;
+
+        // --- Header: Logo + ProMount ---
+        try {
+            const logoData = await getLogoImageData();
+            doc.addImage(logoData, "PNG", margin, y - 8, 10, 10);
+        } catch (e) {
+            // fallback: no logo
+        }
+
+        doc.setFontSize(30);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 30, 30);
+        doc.text("ProMount", margin + 12, y);
         y += 10;
 
-        const headers = ["N°", "Code", "Description", "Needed", "Pack", "Qty"];
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text(headers[0], colN, y);
-        doc.text(headers[1], colCode, y);
-        doc.text(headers[2], colDesc, y);
-        doc.text(headers[3], colNeeded, y);
-        doc.text(headers[4], colPack, y);
-        doc.text(headers[5], colQty, y);
-        y += rowH;
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, y - 3, pageW - margin, y - 3);
+        // --- Subtitle: Project report | Project name ---
+        doc.setFontSize(11);
         doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        doc.text("Project report", margin, y);
+        // Vertical separator
+        const prWidth = doc.getTextWidth("Project report");
+        doc.setDrawColor(180, 100, 100);
+        doc.setLineWidth(0.3);
+        doc.line(margin + prWidth + 4, y - 3, margin + prWidth + 4, y + 1);
+        doc.text("Project name", margin + prWidth + 8, y);
+        y += 16;
 
-        const maxDescW = colNeeded - colDesc - 4;
+        // --- Section title ---
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 30, 30);
+        doc.text("Project total | Bill of materials", margin, y);
+        y += 14;
+
+        // --- Table columns ---
+        const colCode = margin;
+        const colDesc = margin + 50;
+        const colQty = pageW - margin - 30;
+
+        // Table header
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(60, 60, 60);
+        doc.text("Nº", colCode, y);
+        doc.text("Description", colDesc, y);
+        doc.text("Quantity", colQty, y);
+        y += 3;
+
+        // Header underline
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y, pageW - margin, y);
+        y += rowH - 2;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(40, 40, 40);
+
+        const drawRow = (item: BomItem) => {
+            doc.text(item.code, colCode, y);
+            const desc = (item.description ?? item.code).slice(0, 55);
+            doc.text(desc, colDesc, y);
+            doc.text(`${item.quantity} pcs`, colQty, y);
+            y += 2;
+            // Row separator
+            doc.setDrawColor(230, 230, 230);
+            doc.setLineWidth(0.15);
+            doc.line(margin, y, pageW - margin, y);
+            y += rowH - 2;
+        };
+
+        const drawTableHeader = () => {
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(60, 60, 60);
+            doc.text("Nº", colCode, y);
+            doc.text("Description", colDesc, y);
+            doc.text("Quantity", colQty, y);
+            y += 3;
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.3);
+            doc.line(margin, y, pageW - margin, y);
+            y += rowH - 2;
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(40, 40, 40);
+        };
+
         for (let i = 0; i < bom.length; i++) {
             if (y > 270) {
                 doc.addPage();
-                y = 20;
-                doc.setFontSize(10);
-                doc.text(headers[0], colN, y);
-                doc.text(headers[1], colCode, y);
-                doc.text(headers[2], colDesc, y);
-                doc.text(headers[3], colNeeded, y);
-                doc.text(headers[4], colPack, y);
-                doc.text(headers[5], colQty, y);
-                y += rowH;
-                doc.line(margin, y - 3, pageW - margin, y - 3);
+                y = 25;
+                drawTableHeader();
             }
-            const item = bom[i];
-            const desc = (item.description ?? item.code).slice(0, 42);
-            doc.text(String(i + 1), colN, y);
-            doc.text(item.code, colCode, y);
-            doc.text(desc, colDesc, y);
-            doc.text(String(item.needed), colNeeded, y);
-            doc.text(String(item.pack), colPack, y);
-            doc.text(String(item.quantity), colQty, y);
-            y += rowH;
+            drawRow(bom[i]);
         }
 
         doc.save("bom_materials.pdf");
@@ -1023,7 +1092,7 @@ export default function Home() {
                 <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="flex items-center gap-4 rounded-xl border border-promount-border bg-promount-card p-4 shadow-sm">
                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#7E4AF6] text-promount-accent">
-                            <span className="text-xl">📦</span>
+                            <Image src="/panal.png" alt="Package" width={40} height={40} className="invert brightness-0" />
                         </div>
                         <div>
                             <p className="text-sm text-promount-muted-foreground">Total Panal</p>

@@ -369,7 +369,22 @@ export default function Home() {
             item.pack,
             item.quantity,
         ]);
-        const csvContent = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))].join("\n");
+        
+        // Add informational note as footer rows
+        const noteText = "The quantities in the parts list are calculated with care. To keep your installation running fast and hassle-free, we recommend adding a small extra margin to your order. ProMount works with standard packaging units. Not sure what the perfect total is for your project? Your account manager is ready to help you fine-tune it so you're always perfectly prepared on site.";
+        
+        const footerRows = [
+            [], // Empty row as separator
+            ["Note:"],
+            [noteText]
+        ];
+        
+        const csvContent = [
+            headers.join(","), 
+            ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+            ...footerRows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        ].join("\n");
+        
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -513,6 +528,25 @@ export default function Home() {
             }
             drawRow(bom[i]);
         }
+
+        // Add spacing before the note
+        y += 10;
+
+        // Add the informational note at the end
+        if (y > 250) {
+            doc.addPage();
+            y = 25;
+        }
+
+        const noteText = "The quantities in the parts list are calculated with care. To keep your installation running fast and hassle-free, we recommend adding a small extra margin to your order. ProMount works with standard packaging units. Not sure what the perfect total is for your project? Your account manager is ready to help you fine-tune it so you're always perfectly prepared on site.";
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 100, 100);
+
+        // Split text to fit within page width
+        const splitText = doc.splitTextToSize(noteText, contentW);
+        doc.text(splitText, margin, y);
 
         doc.save("bom_materials.pdf");
     };

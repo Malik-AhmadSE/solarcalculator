@@ -253,18 +253,24 @@ export const products = [
     },
     {
         index: 42,
+        code: "1HME15SD004",
+        description: "steeldeck plaatje rvs [Type: verbinding]",
+        pack: 35,
+    },
+    {
+        index: 43,
         code: "1HME15SD005",
         description: "steeldeck plaatje met epdm [Lengte: 15CM; Verhoogd: Verhoogd nee]",
         pack: 35,
     },
     {
-        index: 43,
+        index: 44,
         code: "1HME15SD006",
         description: "steeldeck plaatje met epdm [Lengte: 40CM; Verhoogd: Verhoogd nee]",
         pack: 35,
     },
     {
-        index: 44,
+        index: 45,
         code: "1HME32KK003",
         description: "klikmiddenklem [Kleur: Alu; Aarding: Zonder aarding; Hoogte: 30-40MM]",
         pack: 20,

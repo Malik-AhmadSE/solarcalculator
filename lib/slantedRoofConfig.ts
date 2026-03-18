@@ -36,12 +36,12 @@ export interface SlantedSystemContext {
     thickness: number;
 }
 
-/** Length along the rail direction [m]. */
+/** Length along the rail direction [m]. Portrait/landscape reversed per Excel. */
 export function railLengthM(ctx: SlantedSystemContext): number {
-    return ctx.layout === "HORIZONTAL" ? ctx.systemWidthM : ctx.systemHeightM;
+    return ctx.layout === "HORIZONTAL" ? ctx.systemHeightM : ctx.systemWidthM;
 }
 
-/** Count of panels in the direction perpendicular to rails. */
+/** Count of panels in the direction perpendicular to rails. Excel: IF(A13="HORIZONTAL",B3,B2). */
 export function panelsPerpendicular(ctx: SlantedSystemContext): number {
     return ctx.layout === "HORIZONTAL" ? ctx.columns : ctx.rows;
 }
@@ -83,7 +83,7 @@ const THICK = (p: SlantedRoofProps) => p.Thickness > 30;
 /** Row 2: tile/slate screw or ZINC profile. */
 export const ROW2_RULES: Rule[] = [
     [p => ZorH(p) && FEATHER(p) && BLACK(p), "1HME43ZW044"],
-    [p => ZorH(p) && FEATHER(p) && ALU(p), "1HME43ZW041"],
+    [p => ZorH(p) && FEATHER(p) && ALU(p), "1HME43AL035"],
     [p => ZorH(p) && HOUSE(p) && BLACK(p), "1HME43ZW041"],
     [p => ZorH(p) && HOUSE(p) && ALU(p), "1HME43AL050"],
     [TILED, "1HME46HT004"],

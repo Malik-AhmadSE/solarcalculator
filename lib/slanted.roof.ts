@@ -1,5 +1,5 @@
 
-import { END_CAP_WIDTH, DISTANCE_TRIANLE_BHIND_END_CLAMP } from "../constants/dataConstant";
+import { END_CAP_WIDTH, MIDDLE_END_CLAMP_WIDTH } from "../constants/dataConstant";
 import { products } from "../data/data";
 import { lookupRoofHook } from "./systemCalculation";
 import {
@@ -60,7 +60,7 @@ function buildContext(props: SlantedRoofProps): SlantedSystemContext {
         props.columns,
         layout,
         END_CAP_WIDTH,
-        DISTANCE_TRIANLE_BHIND_END_CLAMP
+        MIDDLE_END_CLAMP_WIDTH
     );
     return {
         layout,

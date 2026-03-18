@@ -22,8 +22,10 @@ import type { MountingAnchorRoofProps } from "@/lib/mountingAnchor.roof";
 import { ROOF_TYPES, type RoofType } from "@/lib/roofTypes";
 import { calculateBOM, type BomItem, type CommonRoofProps } from "@/lib/calculateBOM";
 import { ROOF_HOOKS } from "@/data/RoofTypes";
+import { computeFlatRoofSystemDimensionsM } from "@/lib/flat.roof";
+import { computeSteeldeckSystemDimensionsM } from "@/lib/steeldeck.roof";
 import { computeSystemDimensionsM } from "@/lib/slantedRoofQuantities";
-import { END_CAP_WIDTH, DISTANCE_TRIANLE_BHIND_END_CLAMP } from "@/constants/dataConstant";
+import { END_CAP_WIDTH, MIDDLE_END_CLAMP_WIDTH } from "@/constants/dataConstant";
 import {
     normalizeOrientationSouthEastWest,
     normalizeOrientationLandscapePortrait,
@@ -60,9 +62,13 @@ const ROOF_PANEL_DIMENSIONS: Record<RoofType, { height: number; width: number; t
     const out = {} as Record<RoofType, { height: number; width: number; thickness: number }>;
     for (const type of ROOF_TYPES) {
         const cells = roofs[type]?.inputCells;
-        const e2 = typeof cells?.E2 === "number" ? cells.E2 : 1722;
+        let e2 = typeof cells?.E2 === "number" ? cells.E2 : 1722;
         const e3 = typeof cells?.E3 === "number" ? cells.E3 : 1134;
         const e6 = typeof cells?.E6 === "number" ? cells.E6 : 30;
+        // Field (with triangle) uses fixed height 1722mm in Excel snapshot.
+        if (type === "Field") {
+            e2 = 1722;
+        }
         out[type] = { height: e2, width: e3, thickness: e6 };
     }
     return out;
@@ -85,7 +91,17 @@ interface ConfigState {
     profilesColor: "ALU" | "BLACK";
     profilesType: "FEATHER" | "HOUSE";
     steelDeckType: "15cm" | "40cm" | "Connecting";
-    schroefpaalLength: 1000 | 1500 | "1000/1500";
+    /** Steeldeck Triangle: angle selection (Excel B7). */
+    triangleAngle?: 15 | 20 | 25;
+    /** Field sheet: triangle angle (Excel B7). */
+    fieldAngle?: 15 | 20 | 25;
+    /** Steeldeck: multiplier for quantities (e.g. multiple identical arrays). */
+    steeldeckMultiple?: number;
+    schroefpaalLength: 750 | 1000 | 1500 | "750/1000" | "1000/1500";
+    /** Field (no Triangle) only: "DEPTH IN GROUND" add-on (Excel values +100/+200/+300). */
+    depthInGround?: 0 | 100 | 200 | 300;
+    /** Field (no Triangle) only: Excel adjust angle input. */
+    fieldNoTriangleAngle?: 15 | 20 | 25 | 30;
     roofStructure: "EPDM/TPO/PVC" | "bitumen";
     material: "CONCRETE" | "WOOD/STEEL";
     profilePosition: "HORIZONTAL" | "VERTICAL";
@@ -109,10 +125,15 @@ const defaultConfig: ConfigState = {
     profilesColor: "ALU",
     profilesType: "HOUSE",
     steelDeckType: "15cm",
+    triangleAngle: 15,
+    fieldAngle: 25,
+    steeldeckMultiple: 1,
     schroefpaalLength: 1000,
+    depthInGround: 0,
+    fieldNoTriangleAngle: 25,
     roofStructure: "EPDM/TPO/PVC",
     material: "CONCRETE",
-    profilePosition: "VERTICAL",
+    profilePosition: "HORIZONTAL", // portrait allows only Horizontal; default panelOrientation is portrait
 };
 
 function buildProps(roofType: RoofType, c: ConfigState): CommonRoofProps {
@@ -122,7 +143,7 @@ function buildProps(roofType: RoofType, c: ConfigState): CommonRoofProps {
             return {
                 ...base,
                 panelOrientation: c.panelOrientation,
-                profilePosition: c.profilePosition,
+                profilePosition: c.panelOrientation === "portrait" ? "HORIZONTAL" : c.profilePosition,
                 roofing: c.roofing,
                 roofHook: c.roofHook,
                 profileType: c.profileType,
@@ -147,31 +168,43 @@ function buildProps(roofType: RoofType, c: ConfigState): CommonRoofProps {
                 ...base,
                 orientation: normalizeOrientationLandscapePortrait(c.orientation),
                 profilesColor: c.profilesColor,
+                schroefpaalLength: typeof c.schroefpaalLength === "number" ? c.schroefpaalLength : 1000,
                 clamps: c.clamps,
+                thickness: c.thickness,
+                multiple: Math.max(1, c.steeldeckMultiple ?? 1),
+                angle: c.fieldAngle ?? 25,
             } as FieldRoofProps;
         case "Field (no Triangle)":
             return {
                 ...base,
+                // This configuration uses a fixed single-row layout in Excel.
+                // Enforce a clamp/end-cap accurate BOM and system dimensions by passing thickness.
                 schroefpaalLength: c.schroefpaalLength,
                 profilesColor: c.profilesColor,
                 clamps: c.clamps,
+                thickness: c.thickness,
+                depthInGround: c.depthInGround ?? 0,
+                angle: c.fieldNoTriangleAngle ?? 25,
+                multiple: Math.max(1, c.steeldeckMultiple ?? 1),
             } as FieldNoTriangleRoofProps;
         case "Steeldeck":
             return {
                 ...base,
-                profilePosition: c.profilePosition,
+                panelOrientation: c.panelOrientation ?? "portrait",
+                profilePosition: "HORIZONTAL",
                 steelDeckType: c.steelDeckType,
                 profilesType: c.profilesType,
                 profilesColor: c.profilesColor,
                 clamps: c.clamps,
                 thickness: c.thickness,
+                multiple: Math.max(1, c.steeldeckMultiple ?? 1),
             } as SteeldeckRoofProps;
         case "Steeldeck Solarspeed": {
             const sdOrientation = normalizeOrientationSouthEastWest(c.orientation);
             return {
                 ...base,
                 orientation: sdOrientation,
-                triangleWidth: normalizeSteeldeckSolarspeedTriangleWidth(c.triangleWidth),
+                triangleWidth: sdOrientation === "EAST_WEST" ? 2450 : normalizeSteeldeckSolarspeedTriangleWidth(c.triangleWidth),
                 steelDeckType: c.steelDeckType === "40cm" || c.steelDeckType === "15cm" ? c.steelDeckType : "40cm",
                 clamps: c.clamps,
                 thickness: c.thickness,
@@ -180,10 +213,15 @@ function buildProps(roofType: RoofType, c: ConfigState): CommonRoofProps {
         case "Steeldeck Triangle":
             return {
                 ...base,
-                profilePosition: c.profilePosition,
+                panelOrientation: c.panelOrientation ?? "portrait",
+                // Always horizontal for this configuration
+                profilePosition: "HORIZONTAL",
+                steelDeckType: c.steelDeckType === "15cm" || c.steelDeckType === "40cm" ? c.steelDeckType : "15cm",
+                triangleAngle: c.triangleAngle ?? 15,
                 profilesColor: c.profilesColor,
                 clamps: c.clamps,
                 thickness: c.thickness,
+                multiple: Math.max(1, c.steeldeckMultiple ?? 1),
             } as SteeldeckTriangleRoofProps;
         case "Mounting Anchor":
             return {
@@ -232,7 +270,7 @@ function SolarLayoutVisual({
     const panelStroke = "var(--promount-accent)";
 
     return (
-        <div className="rounded-lg border border-promount-border bg-promount-accent-muted/30 p-3">
+        <div className="rounded-lg border border-promount-border bg-promount-accent-muted/30 p-3 flex flex-col items-center justify-center">
             <p className="mb-2 text-xs font-medium text-promount-muted-foreground">
                 Layout: <span className="font-semibold text-promount-foreground">{layout}</span> · Panels:{" "}
                 <span className="font-semibold text-promount-foreground">{panelOrientation === "portrait" ? "Portrait" : "Landscape"}</span>
@@ -300,7 +338,51 @@ export default function Home() {
     const [config, setConfig] = useState<ConfigState>(defaultConfig);
 
     const update = (key: keyof ConfigState, value: number | string) => {
-        setConfig((prev) => ({ ...prev, [key]: value }));
+        setConfig((prev) => {
+            const next = { ...prev, [key]: value } as ConfigState;
+
+            // Steeldeck Solarspeed: EAST_WEST requires triangle=2450 and even number of columns.
+            if (roofType === "Steeldeck Solarspeed") {
+                const ori =
+                    (key === "orientation" ? value : next.orientation) === "EAST_WEST"
+                        ? "EAST_WEST"
+                        : "SOUTH";
+                if (ori === "EAST_WEST") {
+                    const cols = typeof next.columns === "number" ? next.columns : prev.columns;
+                    next.columns = cols % 2 === 0 ? cols : cols + 1;
+                    next.triangleWidth = 2450;
+                }
+            }
+
+            // Steeldeck Triangle: rows limits depend on panel orientation
+            if (roofType === "Steeldeck Triangle") {
+                const r = typeof next.rows === "number" ? next.rows : prev.rows;
+                const c = typeof next.columns === "number" ? next.columns : prev.columns;
+                next.rows = Math.min(5, Math.max(2, r));
+                next.columns = Math.min(3, Math.max(1, c));
+            }
+
+            // Field: rows limits depend on orientation (Landscape 2–5, Portrait 1–3); columns 2–5
+            if (roofType === "Field") {
+                const ori = (key === "orientation" ? value : next.orientation) === "PORTRAIT" ? "PORTRAIT" : "LANDSCAPE";
+                const r = typeof next.rows === "number" ? next.rows : prev.rows;
+                const c = typeof next.columns === "number" ? next.columns : prev.columns;
+                const minRows = ori === "LANDSCAPE" ? 2 : 1;
+                const maxRows = ori === "LANDSCAPE" ? 5 : 3;
+                next.rows = Math.min(maxRows, Math.max(minRows, r));
+                next.columns = Math.min(5, Math.max(2, c));
+                next.orientation = ori;
+            }
+
+            // Field (no Triangle): rows always 1; columns 2–5.
+            if (roofType === "Field (no Triangle)") {
+                const c = typeof next.columns === "number" ? next.columns : prev.columns;
+                next.rows = 1;
+                next.columns = Math.min(10, Math.max(1, c));
+            }
+
+            return next;
+        });
     };
 
     const props = useMemo(() => buildProps(roofType, config), [roofType, config]);
@@ -314,24 +396,22 @@ export default function Home() {
                     panelOrientation: config.panelOrientation,
                 };
             case "Field":
-                return {
-                    layout: config.orientation === "LANDSCAPE" ? "HORIZONTAL" : "VERTICAL",
-                    panelOrientation: config.orientation === "LANDSCAPE" ? "landscape" : "portrait",
-                };
+                return null;
             case "Steeldeck":
-            case "Steeldeck Triangle":
+                return null;
             case "Mounting Anchor":
                 return {
                     layout: config.profilePosition,
                     panelOrientation: "portrait",
                 };
+            case "Steeldeck Triangle":
+                return null;
             case "Flat Roof":
+                return null;
             case "Field (no Triangle)":
+                return null;
             case "Steeldeck Solarspeed":
-                return {
-                    layout: "VERTICAL",
-                    panelOrientation: "portrait",
-                };
+                return null;
             default:
                 return null;
         }
@@ -350,7 +430,71 @@ export default function Home() {
                 config.columns,
                 layout,
                 END_CAP_WIDTH,
-                DISTANCE_TRIANLE_BHIND_END_CLAMP
+                MIDDLE_END_CLAMP_WIDTH
+            );
+            return { totalPanels, systemWidthM, systemHeightM };
+        }
+        if (roofType === "Flat Roof") {
+            const orientation = config.orientation === "SOUTH" || config.orientation === "EAST_WEST" ? config.orientation : "SOUTH";
+            const { systemWidthM, systemHeightM } = computeFlatRoofSystemDimensionsM(
+                config.width,
+                config.height,
+                config.rows,
+                config.columns,
+                orientation
+            );
+            return { totalPanels, systemWidthM, systemHeightM };
+        }
+        if (roofType === "Steeldeck") {
+            const { systemWidthM, systemHeightM } = computeSteeldeckSystemDimensionsM(
+                config.width,
+                config.height,
+                config.rows,
+                config.columns,
+                config.panelOrientation
+            );
+            return { totalPanels, systemWidthM, systemHeightM };
+        }
+        if (roofType === "Steeldeck Triangle") {
+            const { systemWidthM, systemHeightM } = computeSteeldeckSystemDimensionsM(
+                config.width,
+                config.height,
+                config.rows,
+                config.columns,
+                config.panelOrientation
+            );
+            return { totalPanels, systemWidthM, systemHeightM };
+        }
+        if (roofType === "Field") {
+            const o = config.orientation === "LANDSCAPE" || config.orientation === "PORTRAIT" ? config.orientation : "LANDSCAPE";
+            const { systemWidthM, systemHeightM } = computeSteeldeckSystemDimensionsM(
+                config.width,
+                config.height,
+                config.rows,
+                config.columns,
+                o === "LANDSCAPE" ? "landscape" : "portrait"
+            );
+            return { totalPanels, systemWidthM, systemHeightM };
+        }
+        if (roofType === "Field (no Triangle)") {
+            // Excel includes clamp (20mm) + end caps (32mm) in both directions for this configuration.
+            const { systemWidthM, systemHeightM } = computeFlatRoofSystemDimensionsM(
+                config.width,
+                config.height,
+                config.rows,
+                config.columns,
+                "SOUTH"
+            );
+            return { totalPanels, systemWidthM, systemHeightM };
+        }
+        if (roofType === "Steeldeck Solarspeed") {
+            const orientation = config.orientation === "SOUTH" || config.orientation === "EAST_WEST" ? config.orientation : "SOUTH";
+            const { systemWidthM, systemHeightM } = computeFlatRoofSystemDimensionsM(
+                config.width,
+                config.height,
+                config.rows,
+                config.columns,
+                orientation
             );
             return { totalPanels, systemWidthM, systemHeightM };
         }
@@ -422,6 +566,36 @@ export default function Home() {
             img.src = PROMOUNT_LOGO_SVG;
         });
     }
+
+    const [sendToOdooStatus, setSendToOdooStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+
+    const handleSendToOdoo = async () => {
+        setSendToOdooStatus("sending");
+        try {
+            const res = await fetch("/api/send-to-odoo", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    roofType,
+                    config,
+                    summary,
+                    bom: bom.map(({ code, description, needed, pack, quantity }) => ({
+                        code,
+                        description: description ?? code,
+                        needed,
+                        pack,
+                        quantity,
+                    })),
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error ?? "Failed to send to Odoo");
+            setSendToOdooStatus("success");
+        } catch (e) {
+            setSendToOdooStatus("error");
+            console.error(e);
+        }
+    };
 
     const handleExportPDF = async () => {
         const { jsPDF } = await import("jspdf");
@@ -574,7 +748,20 @@ export default function Home() {
                                     onClick={() => {
                                         setRoofType(type);
                                         const dims = ROOF_PANEL_DIMENSIONS[type];
-                                        setConfig((prev) => ({ ...prev, height: dims.height, width: dims.width, thickness: dims.thickness }));
+                                        setConfig((prev) => {
+                                            if (type === "Field (no Triangle)") {
+                                                return {
+                                                    ...prev,
+                                                    rows: 1,
+                                                    columns: Math.min(10, Math.max(1, prev.columns)),
+                                                    schroefpaalLength: prev.schroefpaalLength,
+                                                    height: dims.height,
+                                                    width: dims.width,
+                                                    thickness: dims.thickness,
+                                                };
+                                            }
+                                            return { ...prev, height: dims.height, width: dims.width, thickness: dims.thickness };
+                                        });
                                     }}
                                     className={`flex min-h-[100px] flex-col justify-center rounded-xl border px-5 py-5 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#7E4AF6] focus:ring-offset-2 ${roofType === type
                                         ? "border-[#7E4AF6] bg-[#7E4AF6] text-white shadow-sm"
@@ -604,10 +791,31 @@ export default function Home() {
                             <label className={labelClass}>Rows</label>
                             <input
                                 type="number"
-                                min={1}
-                                max={20}
+                                min={
+                                    roofType === "Steeldeck Triangle"
+                                        ? 2
+                                        : roofType === "Field"
+                                            ? config.orientation === "LANDSCAPE"
+                                                ? 2
+                                                : 1
+                                            : roofType === "Field (no Triangle)"
+                                                ? 1
+                                                : 1
+                                }
+                                max={
+                                    roofType === "Steeldeck Triangle"
+                                        ? 5
+                                        : roofType === "Field"
+                                            ? config.orientation === "LANDSCAPE"
+                                                ? 5
+                                                : 3
+                                            : roofType === "Field (no Triangle)"
+                                                ? 1
+                                                : 20
+                                }
                                 value={config.rows}
                                 onChange={(e) => update("rows", parseInt(e.target.value, 10) || 1)}
+                                disabled={roofType === "Field (no Triangle)"}
                                 className={inputClass}
                             />
                         </div>
@@ -615,8 +823,22 @@ export default function Home() {
                             <label className={labelClass}>Columns</label>
                             <input
                                 type="number"
-                                min={1}
-                                max={20}
+                                min={
+                                    roofType === "Field (no Triangle)"
+                                        ? 1
+                                        : roofType === "Field"
+                                            ? 2
+                                            : 1
+                                }
+                                max={
+                                    roofType === "Steeldeck Triangle"
+                                        ? 3
+                                        : roofType === "Field (no Triangle)"
+                                            ? 10
+                                            : roofType === "Field"
+                                                ? 5
+                                                : 20
+                                }
                                 value={config.columns}
                                 onChange={(e) => update("columns", parseInt(e.target.value, 10) || 1)}
                                 className={inputClass}
@@ -630,7 +852,10 @@ export default function Home() {
                                     <label className={labelClass}>Orientation</label>
                                     <select
                                         value={config.panelOrientation}
-                                        onChange={(e) => update("panelOrientation", e.target.value as "landscape" | "portrait")}
+                                        onChange={(e) => {
+                                            const v = e.target.value as "landscape" | "portrait";
+                                            setConfig((prev) => ({ ...prev, panelOrientation: v, ...(v === "portrait" ? { profilePosition: "HORIZONTAL" as const } : {}) }));
+                                        }}
                                         className={inputClass}
                                     >
                                         <option value="landscape">Landscape</option>
@@ -692,12 +917,13 @@ export default function Home() {
                                 <div>
                                     <label className={labelClass}>Profile position</label>
                                     <select
-                                        value={config.profilePosition}
+                                        value={config.panelOrientation === "portrait" ? "HORIZONTAL" : config.profilePosition}
                                         onChange={(e) => update("profilePosition", e.target.value as "HORIZONTAL" | "VERTICAL")}
                                         className={inputClass}
+                                        disabled={config.panelOrientation === "portrait"}
                                     >
                                         <option value="HORIZONTAL">Horizontal</option>
-                                        <option value="VERTICAL">Vertical</option>
+                                        {config.panelOrientation === "landscape" && <option value="VERTICAL">Vertical</option>}
                                     </select>
                                 </div>
                                 <div>
@@ -769,6 +995,40 @@ export default function Home() {
                                     </select>
                                 </div>
                                 <div>
+                                    <label className={labelClass}>Angle</label>
+                                    <select
+                                        value={config.fieldAngle ?? 25}
+                                        onChange={(e) => update("fieldAngle", parseInt(e.target.value, 10) as 15 | 20 | 25)}
+                                        className={inputClass}
+                                    >
+                                        <option value={15}>15</option>
+                                        <option value={20}>20</option>
+                                        <option value={25}>25</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Screw pile length</label>
+                                    <select
+                                        value={typeof config.schroefpaalLength === "number" ? config.schroefpaalLength : 1000}
+                                        onChange={(e) => update("schroefpaalLength", parseInt(e.target.value, 10) as 750 | 1000 | 1500)}
+                                        className={inputClass}
+                                    >
+                                        <option value={750}>750 mm</option>
+                                        <option value={1000}>1000 mm</option>
+                                        <option value={1500}>1500 mm</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Multiple</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={config.steeldeckMultiple ?? 1}
+                                        onChange={(e) => update("steeldeckMultiple", Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
                                     <label className={labelClass}>Profile color</label>
                                     <select
                                         value={config.profilesColor}
@@ -799,17 +1059,75 @@ export default function Home() {
                                 <div>
                                     <label className={labelClass}>Screw pile length</label>
                                     <select
-                                        value={config.schroefpaalLength}
+                                        value={
+                                            config.schroefpaalLength === "750/1000"
+                                                ? "750/1000"
+                                                : config.schroefpaalLength === "1000/1500"
+                                                    ? "1000/1500"
+                                                    : String(config.schroefpaalLength)
+                                        }
                                         onChange={(e) => {
                                             const v = e.target.value;
-                                            update("schroefpaalLength", v === "1000/1500" ? v : (parseInt(v, 10) as 1000 | 1500));
+                                            update(
+                                                "schroefpaalLength",
+                                                v === "750/1000"
+                                                    ? "750/1000"
+                                                    : v === "1000/1500"
+                                                        ? "1000/1500"
+                                                        : (parseInt(v, 10) as 750 | 1000 | 1500)
+                                            );
                                         }}
                                         className={inputClass}
                                     >
+                                        <option value={750}>750 mm</option>
                                         <option value={1000}>1000 mm</option>
                                         <option value={1500}>1500 mm</option>
+                                        <option value="750/1000">750/1000</option>
                                         <option value="1000/1500">1000/1500</option>
                                     </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Depth in ground</label>
+                                    <select
+                                        value={config.depthInGround ?? 0}
+                                        onChange={(e) =>
+                                            update("depthInGround", parseInt(e.target.value, 10) as 0 | 100 | 200 | 300)
+                                        }
+                                        className={inputClass}
+                                    >
+                                        <option value={0}>----</option>
+                                        <option value={100}>+100</option>
+                                        <option value={200}>+200</option>
+                                        <option value={300}>+300</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Angle</label>
+                                    <select
+                                        value={config.fieldNoTriangleAngle ?? 25}
+                                        onChange={(e) =>
+                                            update(
+                                                "fieldNoTriangleAngle",
+                                                parseInt(e.target.value, 10) as 15 | 20 | 25 | 30
+                                            )
+                                        }
+                                        className={inputClass}
+                                    >
+                                        <option value={15}>15</option>
+                                        <option value={20}>20</option>
+                                        <option value={25}>25</option>
+                                        <option value={30}>30</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Multiple</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={config.steeldeckMultiple ?? 1}
+                                        onChange={(e) => update("steeldeckMultiple", Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                        className={inputClass}
+                                    />
                                 </div>
                                 <div>
                                     <label className={labelClass}>Profile color</label>
@@ -836,7 +1154,7 @@ export default function Home() {
                             </>
                         )}
 
-                        {/* Steeldeck */}
+                        {/* Steeldeck — profile position always horizontal, not shown */}
                         {roofType === "Steeldeck" && (
                             <>
                                 <div>
@@ -851,17 +1169,6 @@ export default function Home() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className={labelClass}>Profile position</label>
-                                    <select
-                                        value={config.profilePosition}
-                                        onChange={(e) => update("profilePosition", e.target.value as "HORIZONTAL" | "VERTICAL")}
-                                        className={inputClass}
-                                    >
-                                        <option value="HORIZONTAL">Horizontal</option>
-                                        <option value="VERTICAL">Vertical</option>
-                                    </select>
-                                </div>
-                                <div>
                                     <label className={labelClass}>Plate type</label>
                                     <select
                                         value={config.steelDeckType}
@@ -870,31 +1177,45 @@ export default function Home() {
                                     >
                                         <option value="15cm">15 cm</option>
                                         <option value="40cm">40 cm</option>
-                                        <option value="Connecting">Connecting</option>
+                                        <option value="Connecting">Connecting plate</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className={labelClass}>Profile type</label>
-                                    <select
-                                        value={config.profilesType}
-                                        onChange={(e) => update("profilesType", e.target.value as "FEATHER" | "HOUSE")}
+                                    <label className={labelClass}>Multiple</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={config.steeldeckMultiple ?? 1}
+                                        onChange={(e) => update("steeldeckMultiple", Math.max(1, parseInt(e.target.value, 10) || 1))}
                                         className={inputClass}
-                                    >
-                                        <option value="HOUSE">House</option>
-                                        <option value="FEATHER">Feather</option>
-                                    </select>
+                                    />
                                 </div>
-                                <div>
-                                    <label className={labelClass}>Profile color</label>
-                                    <select
-                                        value={config.profilesColor}
-                                        onChange={(e) => update("profilesColor", e.target.value as "ALU" | "BLACK")}
-                                        className={inputClass}
-                                    >
-                                        <option value="ALU">Aluminum</option>
-                                        <option value="BLACK">Black</option>
-                                    </select>
-                                </div>
+                                {config.steelDeckType === "Connecting" && (
+                                    <>
+                                        <div>
+                                            <label className={labelClass}>Profile type</label>
+                                            <select
+                                                value={config.profilesType}
+                                                onChange={(e) => update("profilesType", e.target.value as "FEATHER" | "HOUSE")}
+                                                className={inputClass}
+                                            >
+                                                <option value="HOUSE">House</option>
+                                                <option value="FEATHER">Feather</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Profile color</label>
+                                            <select
+                                                value={config.profilesColor}
+                                                onChange={(e) => update("profilesColor", e.target.value as "ALU" | "BLACK")}
+                                                className={inputClass}
+                                            >
+                                                <option value="ALU">Aluminum</option>
+                                                <option value="BLACK">Black</option>
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
                                 <div>
                                     <label className={labelClass}>Clamp color</label>
                                     <select
@@ -926,12 +1247,24 @@ export default function Home() {
                                 <div>
                                     <label className={labelClass}>Triangle width (mm)</label>
                                     <select
-                                        value={config.triangleWidth === 2450 ? 1500 : config.triangleWidth}
-                                        onChange={(e) => update("triangleWidth", parseInt(e.target.value, 10) as 1500 | 1600)}
+                                        value={
+                                            (config.orientation === "EAST_WEST" ? 2450 : config.triangleWidth === 2450 ? 1500 : config.triangleWidth) as
+                                                | 1500
+                                                | 1600
+                                                | 2450
+                                        }
+                                        onChange={(e) => update("triangleWidth", parseInt(e.target.value, 10) as 1500 | 1600 | 2450)}
+                                        disabled={config.orientation === "EAST_WEST"}
                                         className={inputClass}
                                     >
-                                        <option value={1500}>1500</option>
-                                        <option value={1600}>1600</option>
+                                        {config.orientation === "EAST_WEST" ? (
+                                            <option value={2450}>2450</option>
+                                        ) : (
+                                            <>
+                                                <option value={1500}>1500</option>
+                                                <option value={1600}>1600</option>
+                                            </>
+                                        )}
                                     </select>
                                 </div>
                                 <div>
@@ -963,15 +1296,48 @@ export default function Home() {
                         {roofType === "Steeldeck Triangle" && (
                             <>
                                 <div>
-                                    <label className={labelClass}>Profile position</label>
+                                    <label className={labelClass}>Orientation</label>
                                     <select
-                                        value={config.profilePosition}
-                                        onChange={(e) => update("profilePosition", e.target.value as "HORIZONTAL" | "VERTICAL")}
+                                        value={config.panelOrientation}
+                                        onChange={(e) => update("panelOrientation", e.target.value as "landscape" | "portrait")}
                                         className={inputClass}
                                     >
-                                        <option value="HORIZONTAL">Horizontal</option>
-                                        <option value="VERTICAL">Vertical</option>
+                                        <option value="portrait">Portrait</option>
+                                        <option value="landscape">Landscape</option>
                                     </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Steeldeck</label>
+                                    <select
+                                        value={config.steelDeckType === "15cm" || config.steelDeckType === "40cm" ? config.steelDeckType : "15cm"}
+                                        onChange={(e) => update("steelDeckType", e.target.value as "15cm" | "40cm")}
+                                        className={inputClass}
+                                    >
+                                        <option value="15cm">15 cm</option>
+                                        <option value="40cm">40 cm</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Angle</label>
+                                    <select
+                                        value={config.triangleAngle ?? 15}
+                                        onChange={(e) => update("triangleAngle", parseInt(e.target.value, 10) as 15 | 20 | 25)}
+                                        className={inputClass}
+                                    >
+                                        <option value={15}>15</option>
+                                        <option value={20}>20</option>
+                                        <option value={25}>25</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Multiple</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={config.steeldeckMultiple ?? 1}
+                                        onChange={(e) => update("steeldeckMultiple", Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                        className={inputClass}
+                                    />
                                 </div>
                                 <div>
                                     <label className={labelClass}>Profile color</label>
@@ -1203,8 +1569,21 @@ export default function Home() {
                         onClick={handleExportPDF}
                         className="inline-flex items-center gap-2 rounded-lg bg-[#7E4AF6] px-4 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#7E4AF6] focus:ring-offset-2"
                     >
-
                         Export PDF
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSendToOdoo}
+                        disabled={sendToOdooStatus === "sending"}
+                        className="inline-flex items-center gap-2 rounded-lg border border-[#875A7B] bg-[#875A7B] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#704C6A] hover:border-[#704C6A] focus:outline-none focus:ring-2 focus:ring-[#875A7B] focus:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
+                    >
+                        {sendToOdooStatus === "sending"
+                            ? "Sending…"
+                            : sendToOdooStatus === "success"
+                                ? "Sent"
+                                : sendToOdooStatus === "error"
+                                    ? "Retry"
+                                    : "Send to Odoo"}
                     </button>
                 </div>
             </div>

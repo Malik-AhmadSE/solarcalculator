@@ -77,6 +77,8 @@ describe("each roof type produces valid BOM", () => {
     expect(south.length).toBeGreaterThan(0);
     expect(eastWest.length).toBeGreaterThan(0);
     expect(eastWest.some((i) => i.code === "1SSP19EW017")).toBe(true);
+    // EAST_WEST should not include backplate
+    expect(eastWest.some((i) => i.code === "1SSP99AC087")).toBe(false);
   });
 
   it("Steeldeck Triangle", () => {

@@ -234,20 +234,24 @@ const STEELDECK_SOLARSPEED_5x7: VerificationCase = {
         thickness: 30,
     },
     expectedByCode: {
-        "1SSP19NZ020": { needed: 42 },
-        "1SSP99AC087": { needed: 35 },
-        "1HME32SR096": { needed: 28 },
-        "1HME32SR086": { needed: 56 },
+        // Table I17 (B2=columns=7, B3=rows=5): rows*cols+rows = 5*7+5 = 40
+        "1SSP19NZ020": { needed: 40 },
+        // Panel height 1722mm => backplate 1805mm
+        "1SSP99AC086": { needed: 35 },
+        // Clamps (SOUTH): middle = rows*(cols-1)*2 = 5*6*2 = 60; end = rows*4 = 20
+        "1HME32SR096": { needed: 20 },
+        "1HME32SR086": { needed: 60 },
     },
 };
 
-/** Steeldeck Solarspeed 5×7 EAST_WEST: table (cols+1)*floor(rows/2)=16, backplate 35. */
+/** Steeldeck Solarspeed EAST_WEST (columns must be even): use 5×8 for verification. */
 const STEELDECK_SOLARSPEED_5x7_EW: VerificationCase = {
     id: "steeldeck-solarspeed-5x7-ew",
     roofType: "Steeldeck Solarspeed",
     label: "Steeldeck Solarspeed 5×7 EAST_WEST",
     props: {
         ...COMMON_5x7,
+        columns: 8,
         orientation: "EAST_WEST",
         triangleWidth: 1500,
         steelDeckType: "40cm",
@@ -255,10 +259,11 @@ const STEELDECK_SOLARSPEED_5x7_EW: VerificationCase = {
         thickness: 30,
     },
     expectedByCode: {
-        "1SSP19EW017": { needed: 16 },
-        "1SSP99AC087": { needed: 35 },
-        "1HME32SR096": { needed: 20 },
-        "1HME32SR086": { needed: 60 },
+        // Table I17: (rows+1)*floor(cols/2) = (5+1)*4 = 24
+        "1SSP19EW017": { needed: 24 },
+        // Clamps (EAST_WEST): middle = cols*(rows-1)*2 = 8*4*2 = 64; end = cols*4 = 32
+        "1HME32SR096": { needed: 32 },
+        "1HME32SR086": { needed: 64 },
     },
 };
 
